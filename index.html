@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>김민석 총리 뉴스 모니터링</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: #e4e2dd;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6860;
+    --text-muted: #aaa89f;
+    --news-bg: #eef0ff;
+    --news-color: #3d4fd4;
+    --yt-bg: #fff0f0;
+    --yt-color: #cc0000;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .header {
+    background: var(--text-primary);
+    color: #fff;
+    padding: 18px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .header h1 { font-size: 15px; font-weight: 600; }
+  .header-date { font-size: 12px; color: #aaa; font-variant-numeric: tabular-nums; }
+
+  .date-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .date-label { font-size: 11px; color: var(--text-muted); font-weight: 500; white-space: nowrap; }
+  .date-btn {
+    font-family: 'Pretendard', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 3px 12px;
+    cursor: pointer;
+    background: var(--bg);
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .date-btn:hover { border-color: #bbb; color: var(--text-primary); }
+  .date-btn.active { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
+  .date-btn.today-btn { font-weight: 600; }
+
+  .container {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+  }
+
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    gap: 8px;
+  }
+  .toolbar-left { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .stat-badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 3px 11px;
+  }
+  .stat-badge.countdown { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .stat-badge.archived  { color: #999; background: #f5f4f0; }
+  .btn-report {
+    background: var(--text-primary);
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Pretendard', sans-serif;
+    cursor: pointer;
+    border-radius: 7px;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .btn-report:hover { opacity: 0.8; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .col-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 2px 10px;
+    margin-bottom: 4px;
+    border-bottom: 2px solid var(--border);
+  }
+  .col-header .col-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .col-header .col-count {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 1px 9px;
+  }
+  .col-header.news-header { border-bottom-color: var(--news-color); }
+  .col-header.yt-header   { border-bottom-color: var(--yt-color); }
+  .col-header.news-header .col-title { color: var(--news-color); }
+  .col-header.yt-header   .col-title { color: var(--yt-color); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 11px 14px;
+    margin-bottom: 5px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .card:hover { border-color: #c8c6c0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .card.is-new    { border-left: 3px solid var(--news-color); }
+  .card.is-new-yt { border-left: 3px solid var(--yt-color); }
+
+  .card-meta {
+    min-width: 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 1px;
+    flex-shrink: 0;
+  }
+  .card-source { font-size: 11px; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
+  .card-time   { font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .badge { font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 3px; width: fit-content; }
+  .badge-news { background: var(--news-bg); color: var(--news-color); }
+  .badge-yt   { background: var(--yt-bg);   color: var(--yt-color); }
+
+  .card-body { flex: 1; min-width: 0; }
+  .card-title { font-size: 12px; font-weight: 500; line-height: 1.5; margin-bottom: 4px; }
+  .card-title a { color: var(--text-primary); text-decoration: none; }
+  .card-title a:hover { text-decoration: underline; text-underline-offset: 2px; }
+  .card-url { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .card-thumb {
+    width: 88px;
+    height: 50px;
+    flex-shrink: 0;
+    border-radius: 5px;
+    overflow: hidden;
+    background: #eee;
+    align-self: center;
+  }
+  .card-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .empty { text-align: center; padding: 40px 0; color: var(--text-muted); font-size: 12px; }
+
+  .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 0; gap: 14px; color: var(--text-muted); }
+  .spinner { width: 22px; height: 22px; border: 2px solid var(--border); border-top-color: var(--text-primary); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 100; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--surface); border-radius: 14px; padding: 28px; width: 600px; max-width: 94vw; max-height: 88vh; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .modal-title    { font-size: 15px; font-weight: 600; }
+  .modal-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 20px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+  .modal-close:hover { background: var(--bg); }
+  .modal-textarea { flex: 1; min-height: 380px; font-family: 'Pretendard', monospace; font-size: 13px; line-height: 2; border: 1px solid var(--border); border-radius: 8px; padding: 16px; resize: none; color: var(--text-primary); background: var(--bg); outline: none; }
+  .modal-footer { display: flex; gap: 8px; }
+  .btn-copy   { flex: 1; background: var(--text-primary); color: #fff; border: none; padding: 12px; font-size: 14px; font-weight: 600; font-family: 'Pretendard', sans-serif; cursor: pointer; border-radius: 8px; }
+  .btn-copy:hover { opacity: 0.8; }
+  .btn-cancel { background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border); padding: 12px 20px; font-size: 14px; font-weight: 500; font-family: 'Pretendard', sans-serif; cursor: pointer; border-radius: 8px; }
+  .btn-cancel:hover { background: var(--border); }
+
+  @media (max-width: 800px) {
+    .two-col { grid-template-columns: 1fr; }
+    .header  { padding: 14px 20px; }
+    .date-bar { padding: 8px 20px; }
+    .container { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>김민석 총리 뉴스 모니터링</h1>
+  <span class="header-date" id="headerDate"></span>
+</div>
+
+<div class="date-bar">
+  <span class="date-label">날짜</span>
+  <div id="dateBtns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+</div>
+
+<div class="container">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <span>뉴스 · 유튜브 불러오는 중...</span>
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="stat-badge" id="statUpdate">업데이트 중...</span>
+        <span class="stat-badge countdown" id="statCountdown" style="display:none"></span>
+      </div>
+      <button class="btn-report" onclick="openReport()">보고서 생성</button>
+    </div>
+
+    <div class="two-col">
+      <div class="col-wrap">
+        <div class="col-header news-header">
+          <span class="col-title">뉴스</span>
+          <span class="col-count" id="colNewsCount">0건</span>
+        </div>
+        <div id="newsList"></div>
+      </div>
+      <div class="col-wrap">
+        <div class="col-header yt-header">
+          <span class="col-title">유튜브</span>
+          <span class="col-count" id="colYtCount">0건</span>
+        </div>
+        <div id="ytList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">보고서</div>
+        <div class="modal-subtitle" id="modalSubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <textarea class="modal-textarea" id="modalText" readonly></textarea>
+    <div class="modal-footer">
+      <button class="btn-copy" id="btnCopy" onclick="copyReport()">복사하기 — 카카오톡에 붙여넣기</button>
+      <button class="btn-cancel" onclick="closeModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var QUERY      = '김민석';
+var YT_QUERY   = '김민석 총리';
+var REFRESH_MS = 10 * 60 * 1000;
+
+var newsItems      = [];
+var ytItems        = [];
+var selectedDate   = getTodayStr();
+var nextRefreshAt  = 0;
+var countdownTimer = null;
+
+(function init() {
+  startClock();
+  loadDates(function() {
+    fetchData();
+    setInterval(function() {
+      if (selectedDate === getTodayStr()) fetchData();
+    }, REFRESH_MS);
+  });
+})();
+
+function loadDates(callback) {
+  var today = getTodayStr();
+  fetch('/api/dates')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var dates = data.dates || [];
+      if (dates.indexOf(today) === -1) dates.unshift(today);
+      renderDateBtns(dates);
+      if (callback) callback();
+    })
+    .catch(function() { renderDateBtns([today]); if (callback) callback(); });
+}
+
+function renderDateBtns(dates) {
+  var today = getTodayStr();
+  var html  = '';
+  dates.forEach(function(d) {
+    var isToday  = d === today;
+    var isActive = d === selectedDate;
+    var label    = isToday ? '오늘 (' + d + ')' : d;
+    var cls      = 'date-btn' + (isToday ? ' today-btn' : '') + (isActive ? ' active' : '');
+    html += '<button class="' + cls + '" onclick="selectDate(\'' + d + '\')">' + label + '</button>';
+  });
+  document.getElementById('dateBtns').innerHTML = html;
+}
+
+function selectDate(date) {
+  selectedDate = date;
+  renderDateBtns(
+    Array.from(document.querySelectorAll('.date-btn')).map(function(b) {
+      return b.getAttribute('onclick').replace("selectDate('", '').replace("')", '');
+    })
+  );
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('content').style.display = 'none';
+  fetchData();
+}
+
+function startClock() {
+  function tick() {
+    var d    = new Date();
+    var days = ['일','월','화','수','목','금','토'];
+    document.getElementById('headerDate').textContent =
+      d.getFullYear() + '.' + pad(d.getMonth()+1) + '.' + pad(d.getDate()) +
+      ' (' + days[d.getDay()] + ') ' +
+      pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+function startCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  document.getElementById('statCountdown').style.display = 'inline-flex';
+  countdownTimer = setInterval(function() {
+    var rem  = Math.max(0, nextRefreshAt - Date.now());
+    var mins = Math.floor(rem / 60000);
+    var secs = Math.floor((rem % 60000) / 1000);
+    document.getElementById('statCountdown').textContent =
+      '다음 업데이트 ' + mins + ':' + pad(secs);
+  }, 1000);
+}
+
+function stopCountdown() {
+  if (countdownTimer) clearInterval(countdownTimer);
+  document.getElementById('statCountdown').style.display = 'none';
+}
+
+function fetchData() {
+  var isToday = (selectedDate === getTodayStr());
+  if (isToday) { nextRefreshAt = Date.now() + REFRESH_MS; startCountdown(); }
+  else         { stopCountdown(); }
+
+  var p;
+  if (isToday) {
+    p = Promise.all([
+      fetch('/api/news?query='    + encodeURIComponent(QUERY)).then(function(r) { return r.json(); }),
+      fetch('/api/youtube?query=' + encodeURIComponent(YT_QUERY)).then(function(r) { return r.json(); })
+    ]).then(function(res) { return { newsData: res[0], ytData: res[1] }; });
+  } else {
+    p = fetch('/api/history?date=' + selectedDate)
+      .then(function(r) { return r.json(); })
+      .then(function(d) { return { newsData: d, ytData: { items: d.youtube || [] } }; });
+  }
+
+  p.then(function(result) {
+    parseAndRender(result.newsData, result.ytData, isToday);
+    if (isToday) loadDates(null);
+  }).catch(function() {
+    document.getElementById('loading').innerHTML =
+      '<div class="empty">⚠️ 서버에 연결할 수 없습니다.<br><code>python3 naver_proxy.py</code></div>';
+  });
+}
+
+function parseAndRender(newsData, ytData, isToday) {
+  var today    = getTodayStr();
+  var seenUrls = {};
+  var prevUrls = {};
+
+  newsItems.forEach(function(i) { prevUrls[i.url] = true; });
+  newsItems = [];
+  (newsData.items || []).forEach(function(item) {
+    if (isToday && getDateStr(item.pubDate) !== today) return;
+    var url = (item.link || item.originallink || '').trim();
+    if (!url || seenUrls[url]) return;
+    seenUrls[url] = true;
+    newsItems.push({
+      title:  stripHtml(item.title || ''),
+      url:    url,
+      source: extractSource(item.originallink || url),
+      time:   formatTime(item.pubDate),
+      isNew:  isToday && !prevUrls[url],
+    });
+  });
+
+  var seenVids = {};
+  var prevVids = {};
+  ytItems.forEach(function(i) { prevVids[i.videoId] = true; });
+  ytItems = [];
+  (ytData.items || []).forEach(function(item) {
+    var vid = item.videoId || '';
+    if (!vid || seenVids[vid]) return;
+    seenVids[vid] = true;
+    ytItems.push({
+      videoId:   vid,
+      title:     stripHtml(item.title || ''),
+      url:       'https://www.youtube.com/watch?v=' + vid,
+      channel:   item.channelTitle || 'YouTube',
+      time:      formatYtTime(item.publishedAt),
+      thumbnail: item.thumbnail || '',
+      isNew:     isToday && !prevVids[vid],
+    });
+  });
+
+  var now = new Date();
+  document.getElementById('colNewsCount').textContent = newsItems.length + '건';
+  document.getElementById('colYtCount').textContent   = ytItems.length  + '건';
+
+  if (isToday) {
+    document.getElementById('statUpdate').textContent =
+      '마지막 업데이트 ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+    document.getElementById('statUpdate').className = 'stat-badge';
+  } else {
+    document.getElementById('statUpdate').textContent = '저장된 데이터 · ' + selectedDate;
+    document.getElementById('statUpdate').className   = 'stat-badge archived';
+  }
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  renderLists();
+}
+
+function renderLists() {
+  var newsHtml = '';
+  if (newsItems.length === 0) {
+    newsHtml = '<div class="empty">수집된 뉴스가 없습니다.</div>';
+  } else {
+    newsItems.forEach(function(item) { newsHtml += renderNewsCard(item); });
+  }
+  document.getElementById('newsList').innerHTML = newsHtml;
+
+  var ytHtml = '';
+  if (ytItems.length === 0) {
+    ytHtml = '<div class="empty">수집된 유튜브 영상이 없습니다.</div>';
+  } else {
+    ytItems.forEach(function(item) { ytHtml += renderYtCard(item); });
+  }
+  document.getElementById('ytList').innerHTML = ytHtml;
+}
+
+function renderNewsCard(item) {
+  var safeTitle  = item.title.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var safeUrl    = item.url.replace(/"/g,'&quot;');
+  var safeSource = item.source.replace(/</g,'&lt;');
+  return '<div class="card' + (item.isNew ? ' is-new' : '') + '">' +
+    '<div class="card-meta">' +
+      '<span class="card-source">' + safeSource + '</span>' +
+      '<span class="card-time">'   + item.time   + '</span>' +
+      '<span class="badge badge-news">뉴스</span>' +
+    '</div>' +
+    '<div class="card-body">' +
+      '<div class="card-title"><a href="' + safeUrl + '" target="_blank" rel="noopener">' + safeTitle + '</a></div>' +
+      '<div class="card-url">' + item.url + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderYtCard(item) {
+  var safeTitle   = item.title.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  var safeUrl     = item.url.replace(/"/g,'&quot;');
+  var safeChannel = item.channel.replace(/</g,'&lt;');
+  var thumbHtml   = item.thumbnail
+    ? '<div class="card-thumb"><img src="' + item.thumbnail + '" alt="" loading="lazy"></div>' : '';
+  return '<div class="card' + (item.isNew ? ' is-new-yt' : '') + '">' +
+    thumbHtml +
+    '<div class="card-meta">' +
+      '<span class="card-source">' + safeChannel + '</span>' +
+      '<span class="card-time">'   + item.time    + '</span>' +
+      '<span class="badge badge-yt">YT</span>' +
+    '</div>' +
+    '<div class="card-body">' +
+      '<div class="card-title"><a href="' + safeUrl + '" target="_blank" rel="noopener">' + safeTitle + '</a></div>' +
+      '<div class="card-url">' + item.url + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function getTodayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+function getDateStr(pubDate) {
+  try { var d = new Date(pubDate); return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+  catch(e) { return ''; }
+}
+function formatTime(pubDate) {
+  try { var d = new Date(pubDate); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  catch(e) { return ''; }
+}
+function formatYtTime(publishedAt) {
+  try { var d = new Date(publishedAt); return pad(d.getFullYear()) + '.' + pad(d.getMonth()+1) + '.' + pad(d.getDate()); }
+  catch(e) { return ''; }
+}
+
+var SOURCE_MAP = {
+  'yna':'연합뉴스','yonhap':'연합뉴스','chosun':'조선일보','donga':'동아일보',
+  'joongang':'중앙일보','joins':'중앙일보','hani':'한겨레','khan':'경향신문',
+  'kmib':'국민일보','segye':'세계일보','munhwa':'문화일보','newsis':'뉴시스',
+  'news1':'뉴스1','ytn':'YTN','mbn':'MBN','jtbc':'JTBC',
+  'sbs':'SBS','kbs':'KBS','mbc':'MBC','ohmynews':'오마이뉴스',
+  'hankookilbo':'한국일보','seoul':'서울신문','asiae':'아시아경제',
+  'mt':'머니투데이','edaily':'이데일리','heraldcorp':'헤럴드경제',
+  'fnnews':'파이낸셜뉴스','inews24':'아이뉴스24','kukinews':'쿠키뉴스',
+  'nocutnews':'노컷뉴스','pressian':'프레시안','mediatoday':'미디어오늘',
+  'newspim':'뉴스핌','sedaily':'서울경제','hankyung':'한국경제',
+};
+
+function extractSource(url) {
+  if (!url) return '뉴스';
+  var m = url.match(/https?:\/\/(?:www\.|news\.|m\.)?([^\/\.]+)/);
+  if (m) { var k = m[1].toLowerCase(); return SOURCE_MAP[k] || m[1]; }
+  return '뉴스';
+}
+function stripHtml(str) {
+  return str.replace(/<[^>]+>/g,'')
+    .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')
+    .replace(/&quot;/g,'"').replace(/&#39;/g,"'");
+}
+function pad(n) { return n < 10 ? '0'+n : String(n); }
+
+function openReport() {
+  var now       = new Date();
+  var shortDate = String(now.getFullYear()).slice(2) + pad(now.getMonth()+1) + pad(now.getDate());
+  var timeStr   = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  var isToday   = (selectedDate === getTodayStr());
+  var dateLine  = isToday ? shortDate + '(' + timeStr + ' 기준)' : selectedDate;
+  var title     = '김민석 총리 ' + dateLine;
+
+  var lines = [title, '뉴스 ' + newsItems.length + '건 · 유튜브 ' + ytItems.length + '건', ''];
+
+  if (newsItems.length > 0) {
+    lines.push('[ 뉴스 ]', '');
+    newsItems.forEach(function(item, idx) {
+      lines.push((idx+1) + '. ' + item.source);
+      lines.push(item.title);
+      lines.push(item.url);
+      lines.push('');
+    });
+  }
+  if (ytItems.length > 0) {
+    lines.push('[ 유튜브 ]', '');
+    ytItems.forEach(function(item, idx) {
+      lines.push((idx+1) + '. ' + item.channel);
+      lines.push(item.title);
+      lines.push(item.url);
+      lines.push('');
+    });
+  }
+
+  document.getElementById('modalTitle').textContent    = title;
+  document.getElementById('modalSubtitle').textContent = '뉴스 ' + newsItems.length + '건 · 유튜브 ' + ytItems.length + '건';
+  document.getElementById('modalText').value           = lines.join('\n');
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  document.getElementById('btnCopy').textContent = '복사하기 — 카카오톡에 붙여넣기';
+}
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+function copyReport() {
+  var t = document.getElementById('modalText');
+  t.select(); document.execCommand('copy');
+  var btn = document.getElementById('btnCopy');
+  btn.textContent = '✓ 복사 완료!';
+  setTimeout(function() { btn.textContent = '복사하기 — 카카오톡에 붙여넣기'; }, 2500);
+}
+</script>
+</body>
+</html>
